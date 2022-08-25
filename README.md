@@ -7,9 +7,10 @@ de `kind`, la cual corre cada componente en un contenedor en lugar de usar máqu
 fue diseñado para probar kubernetes en sí, pero también puede ser usado para desarrollo local ó CI.
 
 Este proyecto puede servir para comprender los conceptos, la arquitectura y adentrarnos más en lo que
-son los contenedores, los pods y su relación con los microservicios.
+son los contenedores, los pods y su relación con los micro servicios.
 
-Instalaremos `ArgoCD` 
+Instalaremos `ArgoCD` para realizar los procesos de Continuous Delivery de los diferentes servicios y
+aplicaciones en el cluster Kubernetes.
 
 Instalaremos `Kong` como Ingress Controller y una aplicación web simple para validar la funcionalidad de Kong
 como API Gateway.
@@ -337,23 +338,17 @@ argocd-server                             ClusterIP   10.96.212.131   <none>    
 argocd-server-metrics                     ClusterIP   10.96.176.164   <none>        8083/TCP                     109s
 ```
 
+Port forwarding:
+
+```shell
+$ kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+
 ## Despliegue de Kong
 
 Instalaremos Kong con base de datos postgres para almacenar todas las configuraciones.
 
 Usando helm, agregamos el repositorio de kong:
-
-```shell
-$ helm repo add kong https://charts.konghq.com
-```
-
-Ahora actualizamos los repositorios:
-
-```shell
-$ helm repo update
-```
-
-Creamos un namespace para kong:
 
 ```shell
 $ kubectl create namespace kong
@@ -371,30 +366,7 @@ kong   Active   1s
 Ejecutamos la instalación con los parámetros personalizados para habilitar el servicio de admin y postgresql:
 
 ```shell
-$ helm install api-gateway -n kong kong/kong \
-  --set ingressController.installCRDs=false \
-  --set admin.enabled=true \
-  --set admin.type=ClusterIP \
-  --set admin.http.enabled=true \
-  --set admin.tls.enabled=false \
-  --set env.database=postgres \
-  --set postgresql.enabled=true
-  NAME: api-gateway
-LAST DEPLOYED: Fri Aug  5 09:51:02 2022
-NAMESPACE: kong
-STATUS: deployed
-REVISION: 1
-TEST SUITE: None
-NOTES:
-To connect to Kong, please execute the following commands:
-
-HOST=$(kubectl get svc --namespace kong api-gateway-kong-proxy -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-PORT=$(kubectl get svc --namespace kong api-gateway-kong-proxy -o jsonpath='{.spec.ports[0].port}')
-export PROXY_IP=${HOST}:${PORT}
-curl $PROXY_IP
-
-Once installed, please follow along the getting started guide to start using
-Kong: https://docs.konghq.com/kubernetes-ingress-controller/latest/guides/getting-started/
+$ kubectl apply -f kong-argocd-helm.yml
 ```
 
 Esta instalación de Kong crea varios recursos de tipo `CRD` ó `Custom Resource Definition` que se usan
@@ -443,30 +415,6 @@ En el listado de servicios, el servicio `api-gateway-kong-admin` es de tipo `Clu
 se puede ver el servicio `api-gateway-kong-proxy` de tipo `LoadBalancer` y mapea el puerto `30448` al `80`,
 y el `30428` al `443` en TCP. Necesitamos cambiar esos puertos para que hagan coincidencia con los que definimos
 en el port mapping al crear el cluster.
-
-Actualizamos la configuración del servicio kong admin:
-
-```shell
-$ kubectl -n kong patch service api-gateway-kong-admin --patch-file kong/patch-service-admin-nodeport.yml
-service/api-gateway-kong-admin patched
-```
-
-También actualizamos el servicio kong proxy:
-
-```shell
-$ kubectl -n kong patch service api-gateway-kong-proxy --patch-file kong/patch-service-proxy-nodeport.yml
-service/api-gateway-kong-proxy patched
-```
-
-Ahora listamos para ver los cambios:
-
-```shell
-$ kubectl -n kong get services | grep api-gateway-kong
-api-gateway-kong-admin      NodePort    10.96.157.9     <none>        8001:32581/TCP               12m
-api-gateway-kong-proxy      NodePort    10.96.209.152   <none>        80:31682/TCP,443:32527/TCP   12m
-```
-
-Como se puede ver ya se usan los puertos que definimos al inicio.
 
 Hagamos una petición a kong al puerto TCP/80 donde se exponen los servicios:
 
