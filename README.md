@@ -413,6 +413,12 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 Loa anterior mapea el puerto `8080` del localhost al puerto 443 del servicio `argocd-server`, para verificarlo
 abre en tu navegador el siguiente URL: [https://localhost:8080](https://localhost:8080/).
 
+Para iniciar sesión se usa el usuario `admin` y la contraseña se encuentra en un secreto, para obtenerla usamos:
+
+```shell
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+```
+
 ## Configuración de repositorio Git
 
 Entramos al UI, vamos al menú `Settings`, `Repositories` y hacemos clic en `CONNECT REPO`, y definimos los
