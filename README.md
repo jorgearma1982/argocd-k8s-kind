@@ -247,6 +247,61 @@ Esto se ve bien, todos los pods están `Running` :), en su mayoría son los serv
 
 Todo indica a que el cluster tiene todo listo para desplegar nuestras aplicaciones.
 
+## Despliegue de Kong
+
+Instalaremos Kong para publicar los diferentes servicios web que desplegaremos en las siguientes secciones.
+
+Usando helm, agregamos el repositorio de kong y actualizamos los repos locales:
+
+```shell
+helm repo add kong https://charts.konghq.com
+helm repo update
+```
+
+Creamos el namespace `kong`:
+
+```shell
+kubectl create namespace kong
+```
+
+Ejecutamos la instalación con los parámetros personalizados para habilitar el servicio de admin y postgresql:
+
+```shell
+helm install api-gateway kong/kong -n kong \
+  --set manager.enabled=false \
+  --set proxy.enabled=true \
+  --set proxy.type=NodePort \
+  --set proxy.http.enabled=true \
+  --set proxy.http.nodePort=31682
+```
+
+Listemos los recursos en el namespace de kong:
+
+```shell
+$ kubectl -n kong get pods,services
+NAME                                    READY   STATUS    RESTARTS   AGE
+pod/api-gateway-kong-6c849d74c5-57v49   0/2     Running   0          6s
+
+NAME                                         TYPE       CLUSTER-IP     EXTERNAL-IP  PORT(S)                     AGE
+service/api-gateway-kong-proxy               NodePort   10.96.242.235  <none>       80:31682/TCP,443:30803/TCP  6s
+service/api-gateway-kong-validation-webhook  ClusterIP  10.96.59.76    <none>       443/TCP                     6s
+```
+
+Muy bien, en la salida de arriba vemos el pod del `api-gateway-kong` en estado running, y en los servicios,
+tenemos el del proxy de tipo `NodePort`, mapeando el puerto `80` al `31682`.
+
+Hagamos una petición a kong al puerto TCP/80 donde se exponen los servicios:
+
+```shell
+$ curl http://localhost
+{
+  "message":"no Route matched with those values",
+  "request_id":"9ef3133f3f3eab1d4f142f567e7c4156"
+}
+```
+
+Teniendo una respuesta como la de arriba terminamos esta sección.
+
 ## Despliegue de ArgoCD
 
 Creamos un namespace dedicado para ArgoCD:
