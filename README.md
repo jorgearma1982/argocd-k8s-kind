@@ -411,29 +411,55 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 Loa anterior mapea el puerto `8080` del localhost al puerto 443 del servicio `argocd-server`, para verificarlo
 abre en tu navegador el siguiente URL: [https://localhost:8080](https://localhost:8080/).
 
-## Despliegue aplicación
+## Configuración de repositorio Git
 
-Realizamos el despliegue de una aplicación:
+Entramos al UI, vamos al menú `Settings`, `Repositories` y hacemos clic en `CONNECT REPO`, y definimos los
+siguientes parámetros:
 
-```shell
-$ kubectl apply -f whoami/1_deployment.yml
-```
+* Choose the connection method: VIA HTTPS
+* Type: git
+* Project: default
+* Repository URL: https://github.com/jorgearma1982/gitops-k8s-argocd-infra-configs.git
 
-Creamos el service de una aplicación:
+Es todo, hacemos clic en `CONNECT` para terminar, al final debemos ver el estado de conexión en `Success`.
 
-```shell
-$ kubectl apply -f whoami/2_service.yml
-```
+### Despliegue de aplicaciones
 
-Creamos el ingress de una aplicación:
+Para desplegar una aplicación vamos al menú `Applications` y hacemos clic en `NEW APP`:
 
-```shell
-$ kubectl apply -f whoami/3_ingress.yml
-```
+En la sección `General` usamos:
 
-Esperamos unos segundos a que levanten los servicios y continuamos con la validaciones.
+* Application Name: whoami
+* Project: Default
+* Sync Policy: Manual
 
-## Validación aplicación
+En la sección `Source` usamos:
+
+* Repository URL: https://github.com/jorgearma1982/gitops-k8s-argocd-infra-configs.git
+* Revision: HEAD
+* Path: kubernetes/whoami
+
+En la sección `Destination` usamos:
+
+* Cluster URL: https://kubernetes.default.svc
+* Namespace: default
+
+Para aplicar los cambios hacemos clic en `CREATE`.
+
+Si las configuraciones son correctos se agrega la aplicación y por default aparece en estado `OutOfSync`, ahora
+seleccionamos la aplicación y hacemos clic en `DETAILS`, después en `EDIT` y modificamos `LABELS` con los
+siguientes datos:
+
+* project = argocd
+* environment = develop
+* team = platform
+* owner = jorge-medina
+
+Terminamos de editar las etiquetas y hacemos clic en `Save`.
+
+Lo siguiente es hacer clic en el botón `SYNC` para sincronizar el cluster con el repositorio Git.
+
+## Validación de aplicación
 
 Ahora validamos listando todos los recursos del namespace `default`:
 
