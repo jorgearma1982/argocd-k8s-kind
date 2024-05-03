@@ -4,7 +4,7 @@
 
 En este guía mostramos como instalar un cluster de `Kubernetes` en la laptop usando la implementación
 de `kind`, la cual corre cada componente en un contenedor en lugar de usar máquinas virtuales, originalmente
-fue diseñado para probar kubernetes en sí, pero también puede ser usado para desarrollo local ó CI.
+fue diseñado para probar kubernetes en sí, pero también puede ser usado para desarrollo local o CI.
 
 Este proyecto puede servir para comprender los conceptos, la arquitectura y adentrarnos más en lo que
 son los contenedores, los pods y su relación con los micro servicios.
@@ -33,11 +33,10 @@ Ahora debemos iniciar colima:
 $ colima start
 INFO[0000] starting colima
 INFO[0000] runtime: docker
-INFO[0000] preparing network ...                         context=vm
-INFO[0000] creating and starting ...                     context=vm
-INFO[0023] provisioning ...                              context=docker
-INFO[0023] starting ...                                  context=docker
-INFO[0028] done
+INFO[0001] creating and starting ...           context=vm
+INFO[0044] provisioning ...                    context=docker
+INFO[0044] starting ...                        context=docker
+INFO[0045] done
 ```
 
 **NOTA:** Por default colima levanta una máquina virtual con `2` vCPUs y `2` GB de RAM, si se desea modificar
@@ -54,27 +53,27 @@ Validamos la instalación de las herramientas, iniciamos con kind:
 
 ```shell
 $ kind --version
-kind version 0.14.0
+kind version 0.22.0
 ```
 
 Ahora veamos la versión de `kubectl`:
 
 ```shell
 $ kubectl version --client=true
-Client Version: version.Info{Major:"1", Minor:"24", GitVersion:"v1.24.3"}
-Kustomize Version: v4.5.4
+Client Version: v1.30.0
+Kustomize Version: v5.0.4-0.20230601165947-6ce0bf390ce3
 ```
 
 Y finalmente la versión de `k6`:
 
 ```shell
 $ k6 version
-k6 v0.39.0 ((devel)) 
+k6 v0.46.0 ((devel))
 ```
 
 ## Instalación de cluster
 
-Definimos la configuración del cluster con dos nodos, uno con rol de `control-plane` y otro de `worker`.
+Definimos la configuración del cluster con dos nodos, uno con rol de `control-plane` y otros dos de `worker`.
 
 La configuración está almacenada en el archivo `kind/cluster-multi-ingress.yml`
 
@@ -99,49 +98,49 @@ nodes:
 
 En la configuración de arriba podemos ver para el role `worker` se define el `extraPortMapping`, lo cual significa
 que kind realizará una re dirección de puertos adicional, esta configuración básicamente hace un port forward del
-puerto en el host hacia el puerto en un servicio dentro del cluster, los puertos que se redireccionan son:
+puerto en el host hacia el puerto en un servicio dentro del cluster, los puertos que se re direccionan son:
 
 * TCP `31682` al `80` para acceder a los servicios que expone Kong en modo HTTP
 * TCP `32581` al `8001` para acceder a la API de administración de Kong en modo HTTP.
 
 Note también que los puertos que se re direccionan se asocian a la dirección local `127.0.0.1`.
 
-Ahora creamos el cluster versión `1.23.4` con la configuración en el archivo `kind/cluster-multi-ingress.yml`:
+Ahora creamos el cluster versión `1.27.10` con la configuración en el archivo `kind/cluster-multi-ingress.yml`:
 
 ```shell
-$ kind create cluster --name argocluster --image kindest/node:v1.23.4 --config=kind/cluster-multi-ingress.yml
-Creating cluster "argocluster" ...
- ✓ Ensuring node image (kindest/node:v1.23.4) 🖼
+$ kind create cluster --name argo-develop --image kindest/node:v1.27.10 --config=kind/cluster-multi-ingress.yml
+Creating cluster "argo-develop" ...
+ ✓ Ensuring node image (kindest/node:v1.27.10) 🖼
  ✓ Preparing nodes 📦 📦
  ✓ Writing configuration 📜
  ✓ Starting control-plane 🕹️
  ✓ Installing CNI 🔌
  ✓ Installing StorageClass 💾
  ✓ Joining worker nodes 🚜
-Set kubectl context to "kind-argocluster"
+Set kubectl context to "kind-argo-develop"
 You can now use your cluster with:
 
-kubectl cluster-info --context kind-argocluster
+kubectl cluster-info --context kind-argo-develop
 
-Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/😊
+Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
 ```
 
 Listo!! Ya tenemos un cluster con un nodo de control plane y un worker, hagamos un listado de los clusters de kind:
 
 ```shell
 $ kind get clusters
-argocluster
+argo-develop
 ```
 
-La salida del comando de arriba muestra un cluster llamado `argocluster`.
+La salida del comando de arriba muestra un cluster llamado `argo-develop`.
 
 Veamos que pasó a nivel contenedores docker:
 
 ```shell
 $ docker ps
-CONTAINER ID   IMAGE                  COMMAND                  CREATED          STATUS          PORTS                                                NAMES
-333300549e53   kindest/node:v1.23.4   "/usr/local/bin/entr…"   13 minutes ago   Up 13 minutes   127.0.0.1:80->31682/tcp, 127.0.0.1:8001->32581/tcp   argocluster-worker
-6d8a056a6db9   kindest/node:v1.23.4   "/usr/local/bin/entr…"   13 minutes ago   Up 13 minutes   127.0.0.1:60836->6443/tcp                            argocluster-control-plane
+CONTAINER ID   IMAGE                   COMMAND                  CREATED         STATUS         PORTS                                                NAMES
+cccb693d433a   kindest/node:v1.27.10   "/usr/local/bin/entr…"   4 minutes ago   Up 3 minutes   127.0.0.1:53476->6443/tcp                            argo-develop-control-plane
+e5108810bbf9   kindest/node:v1.27.10   "/usr/local/bin/entr…"   4 minutes ago   Up 3 minutes   127.0.0.1:80->31682/tcp, 127.0.0.1:8001->32581/tcp   argo-develop-worker
 ```
 
 Arriba se puede ver hay dos contenedores en ejecución asociados a los nodos del cluster.
@@ -154,15 +153,15 @@ Además de que el proceso de instalación fue super rápido, kind ya agregó un 
 ```shell
 $ kubectl config get-contexts
 CURRENT   NAME                       CLUSTER            AUTHINFO              NAMESPACE
-*         kind-argocluster           kind-argocluster   kind-argocluster
+*         kind-argo-develop          kind-argo-develop  kind-argo-develop
 ```
 
 Ahora mostramos la información de dicho cluster:
 
 ```shell
 $ kubectl cluster-info
-Kubernetes control plane is running at https://127.0.0.1:53551
-CoreDNS is running at https://127.0.0.1:53551/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+Kubernetes control plane is running at https://127.0.0.1:53476
+CoreDNS is running at https://127.0.0.1:53476/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
 
 To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 ```
@@ -180,14 +179,20 @@ $ kubectl get --raw '/healthz?verbose'
 [+]poststarthook/generic-apiserver-start-informers ok
 [+]poststarthook/priority-and-fairness-config-consumer ok
 [+]poststarthook/priority-and-fairness-filter ok
+[+]poststarthook/storage-object-count-tracker-hook ok
 [+]poststarthook/start-apiextensions-informers ok
 [+]poststarthook/start-apiextensions-controllers ok
 [+]poststarthook/crd-informer-synced ok
+[+]poststarthook/start-system-namespaces-controller ok
 [+]poststarthook/bootstrap-controller ok
 [+]poststarthook/rbac/bootstrap-roles ok
 [+]poststarthook/scheduling/bootstrap-system-priority-classes ok
 [+]poststarthook/priority-and-fairness-config-producer ok
 [+]poststarthook/start-cluster-authentication-info-controller ok
+[+]poststarthook/start-kube-apiserver-identity-lease-controller ok
+[+]poststarthook/start-deprecated-kube-apiserver-identity-lease-garbage-collector ok
+[+]poststarthook/start-kube-apiserver-identity-lease-garbage-collector ok
+[+]poststarthook/start-legacy-token-tracking-controller ok
 [+]poststarthook/aggregator-reload-proxy-client-cert ok
 [+]poststarthook/start-kube-aggregator-informers ok
 [+]poststarthook/apiservice-registration-controller ok
@@ -195,6 +200,8 @@ $ kubectl get --raw '/healthz?verbose'
 [+]poststarthook/kube-apiserver-autoregistration ok
 [+]autoregister-completion ok
 [+]poststarthook/apiservice-openapi-controller ok
+[+]poststarthook/apiservice-openapiv3-controller ok
+[+]poststarthook/apiservice-discovery-controller ok
 healthz check passed
 ```
 
@@ -202,9 +209,9 @@ Listamos los nodos del cluster:
 
 ```shell
 $ kubectl get nodes
-NAME                        STATUS   ROLES                  AGE   VERSION
-argocluster-control-plane   Ready    control-plane,master   55m   v1.23.4
-argocluster-worker          Ready    <none>                 54m   v1.23.4
+NAME                         STATUS   ROLES           AGE     VERSION
+argo-develop-control-plane   Ready    control-plane   5m42s   v1.27.10
+argo-develop-worker          Ready    <none>          5m18s   v1.27.10
 ```
 
 Como se puede ver tenemos un nodo que es el maestro, es decir, la capa de control, y tenemos otro que es el worker.
@@ -214,17 +221,17 @@ Listemos los pods de los servicios que están en ejecución:
 ```shell
 $ kubectl get pods -A
 NAMESPACE            NAME                                                READY   STATUS    RESTARTS   AGE
-kube-system          coredns-64897985d-4ddkv                             1/1     Running   0          56m
-kube-system          coredns-64897985d-t2jrp                             1/1     Running   0          56m
-kube-system          etcd-argocluster-control-plane                      1/1     Running   0          56m
-kube-system          kindnet-b2jfz                                       1/1     Running   0          55m
-kube-system          kindnet-n6tsn                                       1/1     Running   0          56m
-kube-system          kube-apiserver-argocluster-control-plane            1/1     Running   0          56m
-kube-system          kube-controller-manager-argocluster-control-plane   1/1     Running   0          56m
-kube-system          kube-proxy-fdcb6                                    1/1     Running   0          56m
-kube-system          kube-proxy-vt2pm                                    1/1     Running   0          55m
-kube-system          kube-scheduler-argocluster-control-plane            1/1     Running   0          56m
-local-path-storage   local-path-provisioner-5ddd94ff66-mc86h             1/1     Running   0          56m
+kube-system          coredns-5d78c9869d-bc62w                             1/1     Running   0          5m47s
+kube-system          coredns-5d78c9869d-w6629                             1/1     Running   0          5m47s
+kube-system          etcd-argo-develop-control-plane                      1/1     Running   0          6m1s
+kube-system          kindnet-2gfzn                                        1/1     Running   0          5m41s
+kube-system          kindnet-k4zgs                                        1/1     Running   0          5m48s
+kube-system          kube-apiserver-argo-develop-control-plane            1/1     Running   0          6m1s
+kube-system          kube-controller-manager-argo-develop-control-plane   1/1     Running   0          6m1s
+kube-system          kube-proxy-8wcnh                                     1/1     Running   0          5m48s
+kube-system          kube-proxy-jjhft                                     1/1     Running   0          5m41s
+kube-system          kube-scheduler-argo-develop-control-plane            1/1     Running   0          6m1s
+local-path-storage   local-path-provisioner-5b77c697fd-cxw2h              1/1     Running   0          5m47s
 ```
 
 Esto se ve bien, todos los pods están `Running` :), en su mayoría son los servicios del cluster:
@@ -269,14 +276,15 @@ role.rbac.authorization.k8s.io/argocd-dex-server created
 role.rbac.authorization.k8s.io/argocd-notifications-controller created
 role.rbac.authorization.k8s.io/argocd-server created
 clusterrole.rbac.authorization.k8s.io/argocd-application-controller created
+clusterrole.rbac.authorization.k8s.io/argocd-applicationset-controller created
 clusterrole.rbac.authorization.k8s.io/argocd-server created
 rolebinding.rbac.authorization.k8s.io/argocd-application-controller created
 rolebinding.rbac.authorization.k8s.io/argocd-applicationset-controller created
 rolebinding.rbac.authorization.k8s.io/argocd-dex-server created
 rolebinding.rbac.authorization.k8s.io/argocd-notifications-controller created
-rolebinding.rbac.authorization.k8s.io/argocd-redis created
 rolebinding.rbac.authorization.k8s.io/argocd-server created
 clusterrolebinding.rbac.authorization.k8s.io/argocd-application-controller created
+clusterrolebinding.rbac.authorization.k8s.io/argocd-applicationset-controller created
 clusterrolebinding.rbac.authorization.k8s.io/argocd-server created
 configmap/argocd-cm created
 configmap/argocd-cmd-params-cm created
@@ -303,7 +311,9 @@ deployment.apps/argocd-repo-server created
 deployment.apps/argocd-server created
 statefulset.apps/argocd-application-controller created
 networkpolicy.networking.k8s.io/argocd-application-controller-network-policy created
+networkpolicy.networking.k8s.io/argocd-applicationset-controller-network-policy created
 networkpolicy.networking.k8s.io/argocd-dex-server-network-policy created
+networkpolicy.networking.k8s.io/argocd-notifications-controller-network-policy created
 networkpolicy.networking.k8s.io/argocd-redis-network-policy created
 networkpolicy.networking.k8s.io/argocd-repo-server-network-policy created
 networkpolicy.networking.k8s.io/argocd-server-network-policy created
@@ -314,13 +324,13 @@ Verificamos los pods de argocd:
 ```shell
 $ kubectl get pods -n argocd
 NAME                                               READY   STATUS    RESTARTS   AGE
-argocd-application-controller-0                    1/1     Running   0          89s
-argocd-applicationset-controller-7f466f7cc-z4v2c   1/1     Running   0          90s
-argocd-dex-server-54cd4596c4-57rwp                 1/1     Running   0          90s
-argocd-notifications-controller-8445d56d96-7z2v6   1/1     Running   0          89s
-argocd-redis-65596bf87-nxqgf                       1/1     Running   0          89s
-argocd-repo-server-5ccf4bd568-cgp9n                0/1     Running   0          89s
-argocd-server-7dff66c8f8-bmt8l                     1/1     Running   0          89s
+argocd-application-controller-0                    1/1     Running   0          43s
+argocd-applicationset-controller-79c95f5d7-mpkd7   1/1     Running   0          44s
+argocd-dex-server-f5d97b5b-p54ph                   1/1     Running   0          44s
+argocd-notifications-controller-7f8d9dd7f-wsbsr    1/1     Running   0          44s
+argocd-redis-69f8795dbd-t9bk2                      1/1     Running   0          43s
+argocd-repo-server-9cf5d5585-97hwk                 1/1     Running   0          43s
+argocd-server-7574cff9df-b8rkh                     0/1     Running   0          43s
 ```
 
 Verificamos los servicios de argocd:
@@ -328,109 +338,24 @@ Verificamos los servicios de argocd:
 ```shell
 $ kubectl get services -n argocd
 NAME                                      TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
-argocd-applicationset-controller          ClusterIP   10.96.168.2     <none>        7000/TCP,8080/TCP            109s
-argocd-dex-server                         ClusterIP   10.96.121.150   <none>        5556/TCP,5557/TCP,5558/TCP   109s
-argocd-metrics                            ClusterIP   10.96.19.211    <none>        8082/TCP                     109s
-argocd-notifications-controller-metrics   ClusterIP   10.96.16.194    <none>        9001/TCP                     109s
-argocd-redis                              ClusterIP   10.96.245.35    <none>        6379/TCP                     109s
-argocd-repo-server                        ClusterIP   10.96.214.212   <none>        8081/TCP,8084/TCP            109s
-argocd-server                             ClusterIP   10.96.212.131   <none>        80/TCP,443/TCP               109s
-argocd-server-metrics                     ClusterIP   10.96.176.164   <none>        8083/TCP                     109s
+argocd-applicationset-controller          ClusterIP   10.96.151.142   <none>        7000/TCP,8080/TCP            69s
+argocd-dex-server                         ClusterIP   10.96.233.6     <none>        5556/TCP,5557/TCP,5558/TCP   69s
+argocd-metrics                            ClusterIP   10.96.54.13     <none>        8082/TCP                     69s
+argocd-notifications-controller-metrics   ClusterIP   10.96.209.232   <none>        9001/TCP                     69s
+argocd-redis                              ClusterIP   10.96.12.103    <none>        6379/TCP                     69s
+argocd-repo-server                        ClusterIP   10.96.29.136    <none>        8081/TCP,8084/TCP            69s
+argocd-server                             ClusterIP   10.96.47.189    <none>        80/TCP,443/TCP               69s
+argocd-server-metrics                     ClusterIP   10.96.125.85    <none>        8083/TCP                     69s
 ```
 
-Port forwarding:
+Para conectarnos al portal web de ArgoCD vamos a realizar una re dirección de puertos o Port forwarding:
 
 ```shell
-$ kubectl port-forward svc/argocd-server -n argocd 8080:443
+kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
 
-## Despliegue de Kong
-
-Instalaremos Kong con base de datos postgres para almacenar todas las configuraciones.
-
-Usando helm, agregamos el repositorio de kong:
-
-```shell
-$ kubectl create namespace kong
-namespace/kong created
-```
-
-Listamos los namespaces:
-
-```shell
-$ kubectl get namespace kong
-NAME   STATUS   AGE
-kong   Active   1s
-```
-
-Ejecutamos la instalación con los parámetros personalizados para habilitar el servicio de admin y postgresql:
-
-```shell
-$ kubectl apply -f kong-argocd-helm.yml
-```
-
-Esta instalación de Kong crea varios recursos de tipo `CRD` ó `Custom Resource Definition` que se usan
-para configurar los recursos de kong de forma declarativa. Además se crean cuentas de servicio y los roles
-de acceso, así como un secreto, los servicios de red, el deployment y un ingress class.
-
-Listemos los recursos en el namespace de kong:
-
-```shell
-$ kubectl -n kong get all
-NAME                                         READY   STATUS      RESTARTS   AGE
-pod/api-gateway-kong-5f8d97b9c5-dp4rw        2/2     Running     0          7m
-pod/api-gateway-kong-init-migrations-gmc7s   0/1     Completed   0          7m
-pod/api-gateway-postgresql-0                 1/1     Running     0          7m
-
-NAME                                TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
-service/api-gateway-kong-admin      ClusterIP      10.96.100.125   <none>        8001/TCP                     7m
-service/api-gateway-kong-proxy      LoadBalancer   10.96.39.118    <pending>     80:30448/TCP,443:32649/TCP   7m
-service/api-gateway-postgresql      ClusterIP      10.96.10.142    <none>        5432/TCP                     7m
-service/api-gateway-postgresql-hl   ClusterIP      None            <none>        5432/TCP                     7m
-
-NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/api-gateway-kong   1/1     1            1           7m
-
-NAME                                          DESIRED   CURRENT   READY   AGE
-replicaset.apps/api-gateway-kong-5f8d97b9c5   1         1         1       7m
-
-NAME                                      READY   AGE
-statefulset.apps/api-gateway-postgresql   1/1     7m
-
-NAME                                         COMPLETIONS   DURATION   AGE
-job.batch/api-gateway-kong-init-migrations   1/1           40s        7m
-```
-
-En el listado vemos que hay un deployment llamado `api-gateway-kong`, el cual los siguientes pods:
-
-* api-gateway-kong
-* api-gateway-kong-init-migrations
-* api-gateway-postgresql
-
-La base de datos se levanta y se configura con credenciales default en el pod `api-gateway-postgresql`. El pod
-`api-gateway-initmigrations` solo se ejecuta una vez para inicializar y configurar la base de datos postgres.
-Finalmente el pod `api-gateway-kong` es el servidor principal de kong.
-
-En el listado de servicios, el servicio `api-gateway-kong-admin` es de tipo `ClusterIP` en el puerto `8001`. También
-se puede ver el servicio `api-gateway-kong-proxy` de tipo `LoadBalancer` y mapea el puerto `30448` al `80`,
-y el `30428` al `443` en TCP. Necesitamos cambiar esos puertos para que hagan coincidencia con los que definimos
-en el port mapping al crear el cluster.
-
-Hagamos una petición a kong al puerto TCP/80 donde se exponen los servicios:
-
-```shell
-$ curl http://localhost/
-{"message":"no Route matched with those values"}
-```
-
-También podemos hacer una petición a la API de administración de Kong:
-
-```shell
-$ curl http://localhost:8001/
-{"configuration":{"go_pluginserver_exe":"/usr/local/bin/go-pluginserver","mem_cache_size":"128m","db_cache_warmup_entities":["services"],"headers":["server_tokens","latency_tokens"],"worker_consistency":"strict","nginx_events_directives":[{"name":"multi_accept","value":"on"},{"name":"worker_connections","value":"auto"}],"nginx_http_directives":[{"name":"client_body_buffer_size","value":"8k"},{"name":"client_max_body_size","value":"0"}..."tagline":"Welcome to kong","timers":{"running":0,"pending":10},"pids":{"workers":[1114,1115],"master":1}}
-```
-
-Listo!!! Ya tenemos Kong instalado y listo para usarse.
+Loa anterior mapea el puerto `8080` del localhost al puerto 443 del servicio `argocd-server`, para verificarlo
+abre en tu navegador el siguiente URL: [https://localhost:8080](https://localhost:8080/).
 
 ## Despliegue aplicación
 
@@ -517,8 +442,8 @@ $ k6 run k6/script.js
 Para destruir el cluster ejecutamos:
 
 ```shell
-$ kind delete cluster --name argocluster
-Deleting cluster "argocluster" ...
+$ kind delete cluster --name argo-develop
+Deleting cluster "argo-develop" ...
 ```
 
 También podemos limpiar colima:

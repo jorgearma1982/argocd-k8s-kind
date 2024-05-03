@@ -5,11 +5,11 @@ nodes:
   - role: control-plane
   - role: worker
     extraPortMappings:
-    - containerPort: 31682
-      hostPort: 80
-      listenAddress: "127.0.0.1"
-      protocol: TCP
-    - containerPort: 32581
-      hostPort: 8001
-      listenAddress: "127.0.0.1"
-      protocol: TCP
+      - containerPort: 31682
+        hostPort: 80
+        listenAddress: "127.0.0.1"
+        protocol: TCP
+      - containerPort: 32581
+        hostPort: 8001
+        listenAddress: "127.0.0.1"
+        protocol: TCP
