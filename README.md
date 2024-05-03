@@ -89,10 +89,6 @@ nodes:
       hostPort: 80
       listenAddress: "127.0.0.1"
       protocol: TCP
-    - containerPort: 32581
-      hostPort: 8001
-      listenAddress: "127.0.0.1"
-      protocol: TCP
 ```
 
 En la configuración de arriba podemos ver para el role `worker` se define el `extraPortMapping`, lo cual significa
