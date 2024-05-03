@@ -63,6 +63,13 @@ Client Version: v1.30.0
 Kustomize Version: v5.0.4-0.20230601165947-6ce0bf390ce3
 ```
 
+Veamos la versión de `helm`:
+
+```shell
+$ helm version
+version.BuildInfo{Version:"v3.13.0"}
+```
+
 Y finalmente la versión de `k6`:
 
 ```shell
@@ -96,7 +103,6 @@ que kind realizará una re dirección de puertos adicional, esta configuración 
 puerto en el host hacia el puerto en un servicio dentro del cluster, los puertos que se re direccionan son:
 
 * TCP `31682` al `80` para acceder a los servicios que expone Kong en modo HTTP
-* TCP `32581` al `8001` para acceder a la API de administración de Kong en modo HTTP.
 
 Note también que los puertos que se re direccionan se asocian a la dirección local `127.0.0.1`.
 
