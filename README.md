@@ -9,11 +9,10 @@ fue diseñado para probar kubernetes en sí, pero también puede ser usado para 
 Este proyecto puede servir para comprender los conceptos, la arquitectura y adentrarnos más en lo que
 son los contenedores, los pods y su relación con los micro servicios.
 
-Instalaremos `ArgoCD` para realizar los procesos de Continuous Delivery de los diferentes servicios y
-aplicaciones en el cluster Kubernetes.
+Instalaremos `Kong` como Ingress Controller para exponer algunos servicios web que desplegaremos.
 
-Instalaremos `Kong` como Ingress Controller y una aplicación web simple para validar la funcionalidad de Kong
-como API Gateway.
+Instalaremos `ArgoCD` para realizar los procesos de despliegues de los diferentes servicios y
+aplicaciones en el cluster Kubernetes.
 
 ## Requisitos
 
