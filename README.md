@@ -45,7 +45,7 @@ Ahora instalamos los paquetes para kubernetes con `kind`, también instalamos el
 `k6` la herramienta de pruebas de carga de aplicaciones web:
 
 ```shell
-$ brew install kind kubectl k6
+$ brew install kind kubectl helm k6
 ```
 
 Validamos la instalación de las herramientas, iniciamos con kind:
