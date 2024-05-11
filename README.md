@@ -621,6 +621,7 @@ La siguiente es una lista de referencias externas que pueden serle de utilidad:
 * [Kubernetes - Orquestación de contenedores para producción](https://kubernetes.io/es/)
 * [kind - home](https://kind.sigs.k8s.io/)
 * [kind - quick start](https://kind.sigs.k8s.io/docs/user/quick-start/)
-* ArgoCD
 * [Kong Ingress Controller](https://docs.konghq.com/kubernetes-ingress-controller/latest/)
 * [Kong - Getting started guide](https://docs.konghq.com/kubernetes-ingress-controller/latest/guides/getting-started/)
+* [Argo CD Project](https://argoproj.github.io/cd/)
+* [Argo CD - Getting started](https://argo-cd.readthedocs.io/en/stable/getting_started)
