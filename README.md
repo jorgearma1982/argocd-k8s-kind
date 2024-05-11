@@ -29,7 +29,7 @@ $ brew install colima docker
 Ahora debemos iniciar colima:
 
 ```shell
-$ colima start
+$ colima start --cpu 2 --memory 4
 INFO[0000] starting colima
 INFO[0000] runtime: docker
 INFO[0001] creating and starting ...           context=vm
@@ -38,14 +38,15 @@ INFO[0044] starting ...                        context=docker
 INFO[0045] done
 ```
 
-**NOTA:** Por default colima levanta una máquina virtual con `2` vCPUs y `2` GB de RAM, si se desea modificar
-esto para asignar más CPU o RAM, puedes agregar los parámetros `--cpu 4` y `--memory 4`.
+**NOTA:** Por default colima levanta una máquina virtual con `2` vCPUs y `2` GB de RAM, para este caso
+donde ejecutaremos kubernetes asignamos más memoria. En caso de necesitar más recursos use los
+parámetros: `--cpu`, `--memory` y `--disk` para incrementar el CPU, la RAM y el disco respectivamente..
 
 Ahora instalamos los paquetes para kubernetes con `kind`, también instalamos el cliente `kubectl` y
-`k6` la herramienta de pruebas de carga de aplicaciones web:
+`helm`.
 
 ```shell
-$ brew install kind kubectl helm k6
+$ brew install kind kubectl helm
 ```
 
 Validamos la instalación de las herramientas, iniciamos con kind:
@@ -68,13 +69,6 @@ Veamos la versión de `helm`:
 ```shell
 $ helm version
 version.BuildInfo{Version:"v3.13.0"}
-```
-
-Y finalmente la versión de `k6`:
-
-```shell
-$ k6 version
-k6 v0.46.0 ((devel))
 ```
 
 ## Instalación de cluster
@@ -515,16 +509,6 @@ X-Real-Ip: 10.244.1.1
 
 Listo!, ya tenemos una respuesta de `whoami`.
 
-## Pruebas de carga a la aplicación web
-
-Usaremos `k6` para realizar pruebas de carga en la aplicación que exponemos a través de kong:
-
-Ahora ejecutamos el script con las pruebas:
-
-```shell
-$ k6 run k6/script.js
-```
-
 ## Limpieza
 
 Para destruir el cluster ejecutamos:
@@ -571,7 +555,7 @@ Se recomienda que hagas un reset de colima, haciendo delete, y nuevamente start.
 También puedes iniciar colima con la opción `--dns`, por ejemplo:
 
 ```shell
-$ colima start --dns 8.8.8.8
+colima start --dns 8.8.8.8
 ```
 
 ## Comandos útiles
